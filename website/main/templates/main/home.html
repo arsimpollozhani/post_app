@@ -67,11 +67,6 @@
                         {% else %}
                             <p class="text-danger">⛔ Edit time expired!</p>
                         {% endif %}
-                    {% elif user.is_superuser and post.is_editable %}
-                        <form action="" method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger badge" name="post-id" value="{{ post.id }}">DELETE</button>
-                        </form>
                     {% endif %}
                 </div>
             </div>
