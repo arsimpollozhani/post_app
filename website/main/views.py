@@ -4,6 +4,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from .models import Post
 from django.urls import reverse_lazy, reverse
+from django.utils import timezone
+from datetime import timedelta
 # Create your views here.
 
 
@@ -11,6 +13,10 @@ from django.urls import reverse_lazy, reverse
 def home (request):
     posts = Post.objects.all()
 
+    now = timezone.now()
+
+    for post in posts:
+        post.is_editable = (now - post.created_at) < timedelta(minutes=15)
 
     if request.method == "POST":
         post_id = request.POST.get("post-id")
@@ -19,6 +25,8 @@ def home (request):
         # not sure if object exists->use filter
         if post and post.author == request.user:
             post.delete()
+
+
 
     context = {
         "posts" : posts,
@@ -51,6 +59,11 @@ def edit_post(request, post_id):
     if post.author != request.user:
         return redirect('/home')
     
+
+    time_limit =  post.created_at + timedelta(minutes=15)
+    if timezone.now() > time_limit:
+        return redirect('/home')
+
     if request.method == 'POST':
         form = PostForm(request.POST, instance=post)
         if form.is_valid():
@@ -58,7 +71,7 @@ def edit_post(request, post_id):
             return redirect('/home')
     else: # GET
         form = PostForm(instance=post)
-
+    
     # even defined in if-stat, form is available in function-level scope
     context = {
         "form" : form,

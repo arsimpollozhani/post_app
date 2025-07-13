@@ -4,47 +4,83 @@
     Home Page
 {% endblock %}
 
-
 {% block content %}
     <h1>Home page</h1>
-    <h2 class="mb-4">Welcome {{user.username}}</h2>
+    <h2 class="mb-4">Welcome {{ user.username }}</h2>
 
     {% for post in posts %}
-        
-        <div class="card mt-2 bg-dark text-light">
+        <div class="card mt-2 bg-primary bg-gradient text-light">
             <div class="card-header"><strong>@{{ post.author.username }}</strong></div>
             <div class="card-body d-flex flex-row justify-content-between">
                 <div>
-                    <h5 class="card-title"> {{ post.title }}</h5>
-                    <p> {{ post.description }}</p>
+                    <h5 class="card-title">{{ post.title }}</h5>
+                    <p>{{ post.description }}</p>
                 </div>
 
-
-                
                 <div>
-                    {% if user == post.author or user.is_superuser %}
-                        <!-- Delete post -->
+                    {% if user == post.author %}
+                        {% if post.is_editable %}
+                            <form action="" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger badge" name="post-id" value="{{ post.id }}">DELETE</button>
+                            </form>
+
+                            <!-- Timer -->
+                            <p id="timer-{{ post.id }}" class="fs-6 text-warning"></p>
+
+                            <!-- Edit Button -->
+                            <a id="edit-btn-{{ post.id }}" href="{% url 'edit_post' post.id %}" class="btn btn-outline-warning badge">
+                                Edit Post
+                            </a>
+
+                            <!-- Timer Script -->
+                            <script>
+                                window.addEventListener("DOMContentLoaded", function () {
+                                    const timerElement = document.getElementById("timer-{{ post.id }}");
+                                    const editButton = document.getElementById("edit-btn-{{ post.id }}");
+                                    if (!timerElement || !editButton) return;
+
+                                    const deadline = new Date("{{ post.created_at|date:'Y-m-d\\TH:i:s' }}Z");
+                                    deadline.setMinutes(deadline.getMinutes() + 15);
+
+                                    function updateTimer() {
+                                        const now = new Date();
+                                        const diff = deadline - now;
+
+                                        if (diff <= 0) {
+                                            timerElement.innerHTML = "⛔ Edit time expired!";
+                                            editButton.classList.add("disabled");
+                                            editButton.setAttribute("aria-disabled", "true");
+                                            editButton.style.pointerEvents = "none";
+                                            return;
+                                        }
+
+                                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                                        timerElement.innerHTML = `🕒 Time left: ${minutes}m ${seconds}s`;
+                                    }
+
+                                    updateTimer();
+                                    setInterval(updateTimer, 1000);
+                                });
+                            </script>
+                        {% else %}
+                            <p class="text-danger">⛔ Edit time expired!</p>
+                        {% endif %}
+                    {% elif user.is_superuser and post.is_editable %}
                         <form action="" method="post">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger badge" name="post-id" value="{{ post.id }}">DELETE</button>
                         </form>
-                        <!-- Edit post -->
-                        <div>
-                            <a href="{% url 'edit_post' post.id %}" class="btn btn-outline-warning badge">Edit Post</a>
-                        </div>
                     {% endif %}
                 </div>
-                
-                
             </div>
 
-            <div class="card-footer text-muted">
+            <div class="card-footer lead fs-6">
                 {{ post.created_at }}
             </div>
         </div>
-
-        {% empty %}
+    {% empty %}
         <p>No posts yet.</p>
     {% endfor %}
-
 {% endblock %}
